@@ -1,25 +1,49 @@
-require('dotenv').config();
 const express = require('express');
-const http = require('http');
-const socketIo = require('socket.io');
-const sequelize = require('./config/sequelize');
-const initSocket = require('./sockets/init');
-
 const app = express();
+const http = require('http');
+require('dotenv').config();
+const bodyParser = require('body-parser');
+const cors = require('cors');
+
+const { initWebSocket } = require('./src/sockets/socket');
+const { connectProducer } = require('./src/kafka/producer');
+const { connectConsumer } = require('./src/kafka/consumer');
+
+const authRoutes = require('./src/routes/auth.routes');
+const messageRoutes = require('./src/routes/messages.route');
+// const verifyToken = require('./src/middlewares/auth.middleware');
+
 const server = http.createServer(app);
-const io = socketIo(server);
 
-// Middleware
-app.use(express.json());
-
-// Initialize DB
-sequelize.sync().then(() => console.log('MySQL DB connected'));
-
-// Initialize WebSockets
-initSocket(io);
-
-// Routes
-app.get('/', (req, res) => res.send('WhatsApp backend running 🚀'));
+initWebSocket(server);
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+app.use(cors());
+app.use('/auth', authRoutes);
+app.use('/api/messages', messageRoutes);
+
+// app.use(verifyToken);
+
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', message: 'Server is healthy' });
+});
+
+
+const start = async () => {
+  await connectProducer();
+  await connectConsumer();
+
+  server.listen(3000, () => {
+    console.log('Server running on port 3000');
+  });
+};
+
+start();
+
+// module.exports = app;
