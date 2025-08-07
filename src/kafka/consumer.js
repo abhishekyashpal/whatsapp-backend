@@ -1,9 +1,9 @@
 const { Kafka } = require('kafkajs');
-const { io } = require('../ws/socket');
+const { io } = require('../sockets/socket');
 
 const kafka = new Kafka({
   clientId: 'whatsapp-backend',
-  brokers: ['kafka:9092'],
+  brokers: [process.env.KAFKA_BROKER],
 });
 
 const consumer = kafka.consumer({ groupId: 'chat-group' });

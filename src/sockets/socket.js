@@ -1,5 +1,5 @@
 const { Server } = require('socket.io');
-const pool = require('./src/db'); // Adjust if pool is elsewhere
+const pool = require('../config/db'); // Adjust if pool is elsewhere
 
 let io;
 
