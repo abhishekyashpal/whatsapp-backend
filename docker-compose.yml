@@ -7,6 +7,7 @@ services:
       - "5000:5000"
     depends_on:
       - mysql
+      - kafka  # Add Kafka as dependency
     env_file:
       - .env
     volumes:
@@ -19,9 +20,9 @@ services:
     container_name: mysql
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword       # root user password
-      MYSQL_DATABASE: whatsapp_db             # auto-created DB
-      MYSQL_USER: appuser                     # non-root user
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: whatsapp_db
+      MYSQL_USER: appuser
       MYSQL_PASSWORD: appuserpassword
     ports:
       - "3306:3306"
@@ -38,6 +39,8 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
     ports:
       - "2181:2181"
+    networks:
+      - whatsapp-net  # Add to same network
 
   kafka:
     image: confluentinc/cp-kafka:7.6.1
@@ -46,16 +49,18 @@ services:
       - zookeeper
     ports:
       - "9092:9092"
-      - "9093:9093" # Internal listener
+      - "9093:9093"
     environment:
-      KAFKA_BROKER: kafka:9092
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9093
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"  # Recommended for development
     volumes:
       - kafka-data:/var/lib/kafka/data
+    networks:
+      - whatsapp-net  # Add to same network
 
 volumes:
   mysql_data:
