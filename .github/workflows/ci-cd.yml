@@ -72,7 +72,7 @@ jobs:
           git config user.email "ci-bot@yourorg.com"
           git add .
           git commit -m "ci: bump backend image to ${{ github.sha }}"
-          git push origin main
+          git push origin master
 
   compose-test:
     runs-on: ubuntu-latest
