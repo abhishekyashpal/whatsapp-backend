@@ -50,7 +50,7 @@ jobs:
       - name: Checkout GitOps repo
         uses: actions/checkout@v4
         with:
-          repository: your-org/whatsapp-backend-gitops
+          repository: abhishekyashpal/whatsapp-backend-gitops
           token: ${{ secrets.GITOPS_TOKEN_WHATSAPP_BACKEND }}
           path: gitops
 
