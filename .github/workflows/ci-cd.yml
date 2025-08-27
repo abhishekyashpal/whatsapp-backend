@@ -61,7 +61,7 @@ jobs:
 
       - name: Update Helm values with new image tag
         run: |
-          cd gitops/charts/backend
+          cd gitops/charts/whatsapp-backend
           yq -i '.image.repository = "${{ secrets.DOCKER_USERNAME }}/whatsapp-backend"' values.yaml
           yq -i '.image.tag = "${{ github.sha }}"' values.yaml
 
