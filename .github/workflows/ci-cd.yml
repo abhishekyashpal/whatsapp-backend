@@ -44,7 +44,35 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/whatsapp-backend:latest
+          tags: ${{ secrets.DOCKER_USERNAME }}/whatsapp-backend:${{ github.sha }}
+
+      # 👉 Step 2: Update GitOps repo
+      - name: Checkout GitOps repo
+        uses: actions/checkout@v4
+        with:
+          repository: your-org/whatsapp-backend-gitops
+          token: ${{ secrets.GITOPS_TOKEN_WHATSAPP_BACKEND }}
+          path: gitops
+
+      - name: Install yq
+        run: |
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/v4.44.3/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Update Helm values with new image tag
+        run: |
+          cd gitops/charts/backend
+          yq -i '.image.repository = "${{ secrets.DOCKER_USERNAME }}/whatsapp-backend"' values.yaml
+          yq -i '.image.tag = "${{ github.sha }}"' values.yaml
+
+      - name: Commit and push changes to GitOps repo
+        run: |
+          cd gitops
+          git config user.name "ci-bot"
+          git config user.email "ci-bot@yourorg.com"
+          git add .
+          git commit -m "ci: bump backend image to ${{ github.sha }}"
+          git push origin main
 
   compose-test:
     runs-on: ubuntu-latest
