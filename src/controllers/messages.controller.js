@@ -33,19 +33,48 @@ exports.sendMessage = async (req, res) => {
   }
 };
 
-exports.getMessagesWithUser = async (req, res) => {
-  const userId = req.user.id;
-  const targetUserId = req.params.userId;
+
+async function getChatMessages(req, res) {
+  const { chatId } = req.params;
+  const page = parseInt(req.query.page) || 1; // default page 1
+  const limit = parseInt(req.query.limit) || 20; // default limit
+  const offset = (page - 1) * limit;
 
   try {
-    const [rows] = await db.execute(
-      getMessagesUserSql,
-      [userId, targetUserId, targetUserId, userId]
+    // Fetch messages ordered by created_at DESC (latest first)
+    const [rows] = await db.query(
+      `
+      SELECT 
+        m.message_id,
+        m.chat_id,
+        m.sender_id,
+        u.user_name AS sender_name,
+        m.message_text,
+        m.message_type,
+        m.sent_at
+      FROM Messages m
+      JOIN Users u ON m.sender_id = u.user_id
+      WHERE m.chat_id = ?
+      ORDER BY m.sent_at DESC
+      LIMIT ? OFFSET ?
+      `,
+      [chatId, limit, offset]
     );
 
-    res.json(rows);
+    // Reverse for frontend (oldest at top for upscroll behavior)
+    const messages = rows.reverse();
+
+    res.json({
+      page,
+      limit,
+      messages,
+      hasMore: rows.length === limit, // if we got full set, there may be more
+    });
   } catch (err) {
-    console.error('Get Messages Error:', err);
-    res.status(500).json({ error: 'Failed to get messages' });
+    console.error("Error fetching chat messages:", err);
+    res.status(500).json({ error: "Failed to fetch chat messages" });
   }
-};
+}
+
+module.exports = { getChatMessages };
+

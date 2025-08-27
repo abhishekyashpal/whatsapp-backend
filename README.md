@@ -6,3 +6,10 @@ docker-compose up --build
 
 Terminate the services
 docker-compose down
+
+
+
+
+
+
+

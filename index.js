@@ -9,8 +9,9 @@ const { initWebSocket } = require('./src/sockets/socket');
 const { connectProducer } = require('./src/kafka/producer');
 const { connectConsumer } = require('./src/kafka/consumer');
 
-const authRoutes = require('./src/routes/auth.routes');
+const authRoutes = require('./src/routes/auth.route');
 const messageRoutes = require('./src/routes/messages.route');
+const chatRoutes = require('./src/routes/chat.route');
 // const verifyToken = require('./src/middlewares/auth.middleware');
 
 const server = http.createServer(app);
@@ -25,8 +26,9 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 app.use(cors());
-app.use('/auth', authRoutes);
+// app.use('/auth', authRoutes);
 app.use('/api/messages', messageRoutes);
+app.use('/api/chats', chatRoutes);
 
 // app.use(verifyToken);
 

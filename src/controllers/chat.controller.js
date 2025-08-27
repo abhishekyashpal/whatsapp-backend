@@ -1,4 +1,4 @@
-
+const db  = require('../config/db')
 
 
 async function createChatHandler(req, res) {
@@ -210,6 +210,96 @@ async function sendMessageHandler(req, res) {
   } finally {
     conn.release();
   }
+}
+
+async function getRecentChatList(req, res) {
+
+  console.log('chat controller called.')
+  const { mobile } = req.query;
+  console.log('mobile', mobile)
+  if (!mobile) {
+    return res.status(400).json({ error: "Mobile number is required" });
+  }
+
+  try {
+    // 1️⃣ Get user_id from mobile
+    const [userRows] = await db.query(
+      "SELECT user_id FROM Users WHERE mobile = ?",
+      [mobile]
+    );
+    if (userRows.length === 0) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    const userId = userRows[0].user_id;
+    console.log('user_id', userId)
+
+    // 2️⃣ Get all chat_ids the user is part of
+    const [chatRows] = await db.query(
+      "SELECT chat_id FROM Chat_Members WHERE user_id = ?",
+      [userId]
+    );
+    if (chatRows.length === 0) {
+      return res.json([]);
+    }
+    const chatIds = chatRows.map(row => row.chat_id);
+    console.log('chatIds', chatIds)
+
+    // 3️⃣ Fetch last message for each chat
+    const [recentChats] = await db.query(
+      `
+      SELECT 
+        c.chat_id,
+        c.is_group,
+        c.chat_group_name,
+        c.created_at AS chat_created_at,
+        m.message_id,
+        m.message_text,
+        m.message_type,
+        m.message_status,
+        m.sent_at,
+        u.user_id AS sender_id,
+        u.user_name AS sender_name,
+        u.mobile AS sender_mobile
+      FROM Chats c
+      LEFT JOIN Messages m ON m.chat_id = c.chat_id
+      LEFT JOIN Users u ON m.sender_id = u.user_id
+      WHERE c.chat_id IN (?)
+      AND m.sent_at = (
+        SELECT MAX(sent_at) FROM Messages WHERE chat_id = c.chat_id
+      )
+      ORDER BY m.sent_at DESC
+      `,
+      [chatIds]
+    );
+
+    console.log('recentChats', recentChats);
+    // 4️⃣ For 1-to-1 chats, get other participant's details
+    for (let chat of recentChats) {
+      if (!chat.is_group) {
+        const [members] = await db.query(
+          `
+          SELECT u.user_id, u.user_name, u.mobile 
+          FROM Chat_Members cm
+          JOIN Users u ON cm.user_id = u.user_id
+          WHERE cm.chat_id = ? AND u.user_id != ?
+          `,
+          [chat.chat_id, userId]
+        );
+        if (members.length > 0) {
+          chat.other_user = members[0];
+        }
+      }
+    }
+
+    res.json(recentChats);
+  } catch (err) {
+    console.error("Error fetching chats:", err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+module.exports = {
+  getRecentChatList
 }
 
 
